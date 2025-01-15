@@ -1,0 +1,12 @@
+{
+  "name": "yourname/yourproject",
+  "description": "A brief description of your project",
+  "require": {
+    "mongodb/mongodb": "^1.0.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "YourNamespace\\": "src/"
+    }
+  }
+}

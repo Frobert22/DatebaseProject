@@ -7,8 +7,6 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
-$client = new MongoDB\Client("mongodb://localhost:27017");
-$roomsCollection = $client->hotel_booking_system->rooms;
 $userId = $_SESSION['user_id'];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['logoutUser'])) {
@@ -33,7 +31,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!$room) {
                 echo "Room is not available.";
             } else {
-                $userId = new MongoDB\BSON\ObjectId($userId);
                 $result = $roomsCollection->updateOne(
                     [
                         '_id' => $roomId,
@@ -69,7 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($room && ($room['status'] ?? '') == 'available') {
                 $reservation = [
                     '_id' => new MongoDB\BSON\ObjectID(),
-                    'user_id' => new MongoDB\BSON\ObjectId($userId),
+                    'user_id' => $userId,
                     'checkInDate' => new MongoDB\BSON\UTCDateTime(),
                     'checkOutDate' => null
                 ];
@@ -125,9 +122,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </style>
 </head>
 <body>
+<div style="font-style: italic; color: #979ca0;">Welcome: <?php echo $_SESSION['logged_user'] ?></div>
 <h1>Client Dashboard</h1>
 
-<!-- Logout Form -->
 <form method="POST" action="">
     <button type="submit" name="logoutUser">Logout</button>
 </form>
@@ -184,14 +181,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </tr>
     <?php
     $bookedRooms = $roomsCollection->find(['status' => 'booked']);
-    $userObjectId = new MongoDB\BSON\ObjectId($userId);
     foreach ($bookedRooms as $room):
         $reservations = $room['reservations'] ?? null;
         if (!is_object($reservations) || $reservations->count() < 1) {
             continue;
         }
         foreach ($reservations as $reservation):
-            if ((string)$reservation['user_id'] !== (string)$userObjectId || !is_null($reservation->checkOutDate)) {
+            if ($reservation['user_id'] !== $userId || !is_null($reservation->checkOutDate)) {
                 continue;
             }
             ?>

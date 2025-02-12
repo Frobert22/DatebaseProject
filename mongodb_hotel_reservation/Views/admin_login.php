@@ -1,15 +1,22 @@
 <?php
-global $adminsCollection;
 session_start();
 require '../Core/db.php';
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = $_POST['email'] ?? null;
     $password = $_POST['password'] ?? null;
 
     if ($email && $password) {
-        $admin = $adminsCollection->findOne(['email' => $email]);
+        $stmt = $conn->prepare("SELECT * FROM users AS u INNER JOIN admins AS a ON a.userid = u.id WHERE u.email = ?");
+        $stmt->bind_param("s", $email);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        $admin = $res->fetch_assoc();
+        $stmt->close();
+
         if ($admin && password_verify($password, $admin['password'])) {
-            $_SESSION['admin_id'] = (string) $admin['_id'];
+            $_SESSION['admin_id'] = $admin['id'];
+            $_SESSION['logged_admin_user'] = $admin['name'];
             header('Location: admin.php');
             exit;
         } else {

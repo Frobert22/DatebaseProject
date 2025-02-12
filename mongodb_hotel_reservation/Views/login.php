@@ -13,9 +13,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $password = $_POST['password'] ?? null;
 
     if ($email && $password) {
-        $user = $usersCollection->findOne(['email' => $email]);
+        $stmt = $conn->prepare("SELECT * FROM users WHERE email = ?");
+        $stmt->bind_param("s", $email);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        $user = $res->fetch_assoc();
+        $stmt->close();
+
         if ($user && password_verify($password, $user['password'])) {
-            $_SESSION['user_id'] = (string) $user['_id'];
+            $_SESSION['user_id'] = $user['id'];
+            $_SESSION['logged_user'] = $user['name'];
             header('Location: client_dashboard.php');
             exit;
         } else {

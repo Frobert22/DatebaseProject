@@ -7,11 +7,6 @@ if (!isset($_SESSION['admin_id'])) {
     exit;
 }
 
-$client = new MongoDB\Client("mongodb://localhost:27017");
-$roomsCollection = $client->hotel_booking_system->rooms;
-$reservationsCollection = $client->hotel_booking_system->reservations;
-$usersCollection = $client->hotel_booking_system->users;
-
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['addRoom'])) {
     $roomNumber = $_POST['roomNumber'] ?? null;
     $type = $_POST['type'] ?? null;
@@ -62,6 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['deleteRoom'])) {
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+<div style="font-style: italic; color: #979ca0;">Welcome: <?php echo $_SESSION['logged_admin_user'] ?></div>
 <h1>Admin Panel</h1>
 
 <h2>Add Room</h2>
@@ -123,7 +119,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['deleteRoom'])) {
         foreach ($reservations as $reservation):
             if (!is_null($reservation->checkOutDate)) continue;
 
-            $user = $usersCollection->findOne(['_id' => $reservation->user_id]);
+            $stmt = $conn->prepare("SELECT * FROM users WHERE id = ?");
+            $stmt->bind_param("i", $reservation->user_id);
+            $stmt->execute();
+            $res = $stmt->get_result();
+            $user = $res->fetch_assoc();
+            $stmt->close();
+
+            if (!$user) continue
         ?>
             <li>Room Number: <?php echo $room['roomNumber']; ?>, Type: <?php echo $room['type']; ?>, Price:
                 $<?php echo $room['price']; ?>, Booked By: <?php echo $user['name']; ?>, Check-In
@@ -142,7 +145,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['deleteRoom'])) {
             continue;
         }
         foreach ($reservations as $reservation):
-            $user = $usersCollection->findOne(['_id' => $reservation->user_id]);
+            $stmt = $conn->prepare("SELECT * FROM users WHERE id = ?");
+            $stmt->bind_param("i", $reservation->user_id);
+            $stmt->execute();
+            $res = $stmt->get_result();
+            $user = $res->fetch_assoc();
+            $stmt->close();
+
+            if (!$user) continue
             ?>
             <li>Room Number: <?php echo $room['roomNumber']; ?>, Type: <?php echo $room['type']; ?>, Price:
                 $<?php echo $room['price']; ?>, Booked By: <?php echo $user['name']; ?>, Check-In

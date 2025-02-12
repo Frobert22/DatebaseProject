@@ -15,17 +15,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($name && $email && $password) {
         try {
-            $result = $usersCollection->insertOne([
-                'name' => $name,
-                'email' => $email,
-                'password' => password_hash($password, PASSWORD_DEFAULT)
-            ]);
-            $userId = $result->getInsertedId();
-            echo "User successfully registered: " . $userId . "<br>";
+            $stmt = $conn->prepare("SELECT * FROM users WHERE name = ? OR email = ?");
+            $stmt->bind_param('ss', $name, $email);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            $stmt->close();
 
-            $_SESSION['user_id'] = (string) $userId;
-            header('Location: ../views/client_dashboard.php');
-            exit;
+            if ($result->num_rows > 0) {
+                echo "User already exists with this email or name";
+            } else {
+                $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+
+                $stmtInsert = $conn->prepare("INSERT INTO users (name, email, password) VALUES (?, ?, ?)");
+                $stmtInsert->bind_param('sss', $name, $email, $hashedPassword);
+                $stmtInsert->execute();
+                $userId = $stmtInsert->insert_id;
+                $stmtInsert->close();
+                $_SESSION['user_id'] = $userId;
+                $_SESSION['logged_user'] = $name;
+                header('Location: client_dashboard.php');
+                exit;
+            }
         } catch (Exception $e) {
             echo "Registration failed: " . $e->getMessage() . "<br>";
         }
